@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self';">
+    <title>Activate Product Key</title>
+    <link rel="stylesheet" href="../shared/css/style.css">
+</head>
+<style>
+    body {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .product-key-card {
+        max-width: 500px;
+        width: 100%;
+        margin: 0 auto;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .form-control-custom {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        width: 100%;
+        font-family: monospace;
+        font-size: 1rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .form-control-custom:focus {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #667eea;
+        outline: none;
+        color: white;
+    }
+
+    .form-control-custom::placeholder {
+        color: rgba(255, 255, 255, 0.3);
+        text-transform: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .info-box {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 3px solid #3b82f6;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+        border-width: 0.2em;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="product-key-card card p-4 p-md-5 bg-transparent border-0 shadow-none">
+            <!-- Icon -->
+            <div class="text-center mb-4 text-white">
+                <i class="bi bi-key-fill display-1" style="color: #f59e0b;"></i>
+                <h2 class="mt-2">Activate Your Software</h2>
+            </div>
+
+            <!-- Info Message -->
+            <div class="info-box mb-4">
+                <div class="d-flex gap-2">
+                    <i class="bi bi-info-circle-fill text-info mt-1"></i>
+                    <div class="text-white-50 small">
+                        <strong class="text-white">Need your product key?</strong><br>
+                        Check your email - it should have been sent when you created your
+                        EbisCloud Account and bought the Ebiscloud ERP basic Package.
+                        <br><br>
+                        <span class="text-info-emphasis">Don't have a key? Contact support@ebiscloud.com</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Key Input -->
+            <div class="mb-4">
+                <label class="form-label fw-semibold text-white">
+                    <i class="bi bi-upc-scan"></i> Product Key
+                </label>
+                <input type="text" class="form-control-custom" id="productKeyInput"
+                    placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off">
+                <div class="text-secondary small mt-1">
+                    <i class="bi bi-dot"></i> Format: 5 groups of 5 characters
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-light btn-sm w-50" id="cancelBtn">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+                <button class="btn btn-light btn-sm w-50" id="activateBtn" disabled>
+                    Activate <i class="bi bi-check-circle"></i>
+                </button>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="alert alert-danger alert-sm mt-3"
+                style="display: none; font-size: 0.875rem; background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); color: #f87171;">
+                <i class="bi bi-exclamation-triangle-fill"></i> <span id="errorText"></span>
+            </div>
+        </div>
+    </div>
+    <script src="product-key_script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self';">
+    <title>Onboarding - Welcome</title>
+    <link rel="stylesheet" href="../shared/css/style.css">
+</head>
+<style>
+    body {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .onboarding-card {
+        max-width: 600px;
+        margin: 0 auto;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .step-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #cbd5e1;
+        transition: all 0.3s;
+    }
+
+    .step-dot.active {
+        width: 24px;
+        border-radius: 5px;
+        background: #667eea;
+    }
+
+    .step-dot.completed {
+        background: #10b981;
+    }
+
+    .language-option {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .language-option:hover {
+        transform: translateX(5px);
+    }
+
+    .language-option.selected {
+        background: #667eea;
+        color: white;
+    }
+
+    .price-option {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .price-option:hover {
+        transform: translateX(5px);
+    }
+
+    .price-option.selected {
+        background: #667eea;
+        color: white;
+        /* border-color: #10b981; */
+    }
+
+    .price-option.selected small {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .layout-option {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .layout-option:hover {
+        transform: translateX(5px);
+    }
+
+    .layout-option.selected {
+        background: #667eea;
+        color: white;
+    }
+
+    .layout-option.selected small {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    /* Form controls - matching your design */
+    .form-control-custom {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        width: 100%;
+    }
+
+    .form-control-custom:focus {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #667eea;
+        outline: none;
+        color: white;
+    }
+
+    .form-control-custom::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .form-control-custom:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .btn-outline-custom {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        transition: all 0.2s;
+    }
+
+    .btn-outline-custom:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="onboarding-card card p-4 p-md-4 bg-transparent border-0 shadow-none">
+            <!-- Step Indicators -->
+            <div class="step-indicator">
+                <div class="step-dot" data-step="0"></div>
+                <div class="step-dot" data-step="1"></div>
+                <div class="step-dot" data-step="2"></div>
+                <div class="step-dot" data-step="3"></div>
+                <div class="step-dot" data-step="4"></div>
+                <div class="step-dot" data-step="5"></div>
+            </div>
+
+            <!-- Step 0: Welcome & Language -->
+            <div id="step0" class="step-content mt-4">
+                <div class="text-center mb-4 text-white mt-4">
+                    <i class="bi bi-person display-1"></i>
+                    <h2 class="mt-3">Welcome</h2>
+                    <div class="d-flex flex-column gap-0">
+                        <span class="text-secondary">Let's get your store set up in just a few steps</span>
+                        <span class="text-secondary">Onboarding process will only take a few minutes to complete</span>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-translate"></i> Choose your language
+                    </label>
+                    <div class="list-group">
+                        <div class="list-group-item language-option" data-lang="en">
+                            <i class="bi bi-flag-en"></i> English
+                        </div>
+                        <div class="list-group-item language-option" data-lang="es">
+                            <i class="bi bi-flag-es"></i> Kiswahili
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-light btn-sm w-100 next-btn" data-next="1" disabled>
+                    Start <i class="bi bi-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- Step 1: Email Input -->
+            <div id="step1" class="step-content mt-4" style="display: none;">
+                <div class="text-center mb-4 text-white mt-4">
+                    <i class="bi bi-envelope display-1"></i>
+                    <h2 class="mt-3">What's your email?</h2>
+                    <div class="d-flex flex-column gap-0">
+                        <span class="text-secondary">We'll use this for account recovery</span>
+                        <span class="text-secondary">and important notifications</span>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-envelope-fill"></i> Email Address
+                    </label>
+                    <input type="email" class="form-control-custom" id="emailInput" placeholder="you@example.com"
+                        autocomplete="off">
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-custom btn-sm w-50 prev-btn" data-prev="0">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                    <button class="btn btn-light btn-sm w-50 next-btn" data-next="2" id="emailNextBtn" disabled>
+                        Continue <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Registration Form -->
+            <div id="step2" class="step-content" style="display: none;">
+                <div class="text-center mb-4 text-white">
+                    <!-- <i class="bi bi-person-plus fs-1"></i> -->
+                    <h2 class="mt-3">Create your account</h2>
+                    <div class="d-flex flex-column gap-0">
+                        <span class="text-secondary">Set up your admin credentials</span>
+                        <span class="text-secondary">You'll use these to access the POS system</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-person-badge"></i> Full Name
+                    </label>
+                    <input type="text" class="form-control-custom" id="fullName" placeholder="John Doe"
+                        autocomplete="off">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-envelope-fill"></i> Email Address
+                    </label>
+                    <input type="email" class="form-control-custom" id="registrationEmail" disabled readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-lock-fill"></i> Password
+                    </label>
+                    <input type="password" class="form-control-custom" id="password"
+                        placeholder="Create a strong password">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-lock-fill"></i> Confirm Password
+                    </label>
+                    <input type="password" class="form-control-custom" id="confirmPassword"
+                        placeholder="Confirm your password">
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-custom btn-sm w-50 prev-btn" data-prev="1">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                    <button class="btn btn-light btn-sm w-50 next-btn" data-next="3" id="registerNextBtn" disabled>
+                        Continue <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Step 3: Price Display -->
+            <div id="step3" class="step-content mt-4" style="display: none;">
+                <div class="text-center mb-4 text-white mt-4">
+                    <i class="bi bi-tag display-1"></i>
+                    <h2 class="mt-3">Price Display</h2>
+                    <div class="d-flex flex-column gap-0">
+                        <span class="text-secondary">Choose how prices should be displayed</span>
+                        <span class="text-secondary">This affects both screen display and receipts</span>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-calculator"></i> Price Display Preference
+                    </label>
+                    <div class="list-group">
+                        <div class="list-group-item price-option" data-price="before">
+                            <i class="bi bi-eye"></i> Before Tax
+                            <small class="d-block text-secondary mt-1">Show prices excluding tax (common for B2B)</small>
+                        </div>
+                        <div class="list-group-item price-option" data-price="after">
+                            <i class="bi bi-eye-fill"></i> After Tax
+                            <small class="d-block text-secondary mt-1">Show prices including tax (common for retail)</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-custom btn-sm w-50 prev-btn" data-prev="2">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                    <button class="btn btn-light btn-sm w-50 next-btn" data-next="4" id="priceNextBtn" disabled>
+                        Continue <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Step 4: Layout Choice -->
+            <div id="step4" class="step-content mt-4" style="display: none;">
+                <div class="text-center mb-4 text-white mt-4">
+                    <i class="bi bi-display display-1"></i>
+                    <h2 class="mt-3">Choose Your Layout</h2>
+                    <div class="d-flex flex-column gap-0">
+                        <span class="text-secondary">Select the layout that best fits your hardware setup</span>
+                        <span class="text-secondary">You can change this later in settings</span>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-layout-three-columns"></i> Layout Preference
+                    </label>
+                    <div class="list-group">
+                        <div class="list-group-item layout-option" data-layout="standard">
+                            <i class="bi bi-keyboard"></i> Standard Layout
+                            <small class="d-block text-secondary mt-1">Optimized for physical keyboard - faster checkout with
+                                keyboard shortcuts</small>
+                        </div>
+                        <div class="list-group-item layout-option" data-layout="visual">
+                            <i class="bi bi-display"></i> Visual Layout
+                            <small class="d-block text-secondary mt-1">Touch-optimized with virtual keyboard - perfect for
+                                touchscreens</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-custom btn-sm w-50 prev-btn" data-prev="3">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                    <button class="btn btn-light btn-sm w-50 next-btn" data-next="5" id="layoutNextBtn" disabled>
+                        Continue <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Step 5: Completion -->
+            <div id="step5" class="step-content mt-4" style="display: none;">
+                <div class="text-center mb-4 text-white mt-4">
+                    <i class="bi bi-check-circle-fill display-1" style="color: #10b981;"></i>
+                    <h2 class="mt-3">You're All Set!</h2>
+                    <div class="d-flex flex-column gap-0">
+                        <span class="text-secondary">Your store has been configured successfully</span>
+                        <span class="text-secondary">You're ready to start using SuperMarket POS</span>
+                    </div>
+                </div>
+            
+                <div class="mb-4 p-3"
+                    style="background: rgba(16, 185, 129, 0.1); border-radius: 10px; border-left: 3px solid #10b981;">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-info-circle-fill text-success mt-1"></i>
+                        <div>
+                            <strong class="text-white">Next Steps:</strong>
+                            <div class="text-secondary" style="font-size: 0.9rem;">
+                                Open <strong>"Management"</strong> section to add products,<br>
+                                set up tax rates, and start selling!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="mb-4">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="text-center p-2" style="background: rgba(255,255,255,0.05); border-radius: 8px;">
+                                <i class="bi bi-box-seam fs-4 text-white"></i>
+                                <div class="small text-secondary">Add Products</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-2" style="background: rgba(255,255,255,0.05); border-radius: 8px;">
+                                <i class="bi bi-receipt fs-4 text-white"></i>
+                                <div class="small text-secondary">Start Selling</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-custom btn-sm w-50 prev-btn" data-prev="4">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                    <button class="btn btn-light btn-sm w-50" id="completeBtn">
+                        Go to Login <i class="bi bi-box-arrow-in-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="../onboarding/onboarding_script.js"></script>
+</body>
+
+</html>

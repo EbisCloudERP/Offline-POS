@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self';">
+    <title>Login - EbisCloud POS</title>
+    <link rel="stylesheet" href="../shared/css/style.css">
+</head>
+<style>
+    body {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-card {
+        max-width: 450px;
+        width: 100%;
+        margin: 0 auto;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .account-option {
+        cursor: pointer;
+        transition: all 0.2s;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .account-option:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+    }
+
+    .account-option.selected {
+        background: linear-gradient(90deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+        border-color: #667eea;
+    }
+
+    .avatar-icon {
+        font-size: 2.5rem;
+    }
+
+    .form-control-custom {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        width: 100%;
+    }
+
+    .form-control-custom:focus {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #667eea;
+        outline: none;
+        color: white;
+    }
+
+    .form-control-custom::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-outline-custom {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        transition: all 0.2s;
+    }
+
+    .btn-outline-custom:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .checkbox-custom {
+        accent-color: #667eea;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .password-container {
+        transition: all 0.3s ease;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="login-card card p-2 p-md-5 bg-transparent border-0 shadow-none">
+            <!-- Logo -->
+            <div class="text-center mb-4 text-white">
+                <img class="logo-icon" src="../shared/images/ebis_new_logo-removebg-preview.png" alt="EbisCloud Logo" width="120" height="100">
+                <!-- <i class="bi bi-cart-fill display-1"></i> -->
+                <h2 class="mt-2">Welcome Back</h2>
+                <span class="text-secondary">Sign in to continue to POS</span>
+            </div>
+
+            <!-- Account Selection View -->
+            <div id="accountSelectionView">
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-white mb-3">
+                        <i class="bi bi-people"></i> Select an account
+                    </label>
+                    <div id="accountsList">
+                        <!-- Accounts will be populated here -->
+                        <div class="text-center text-secondary py-3">
+                            <i class="bi bi-hourglass-split"></i> Loading accounts...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password View (hidden initially) -->
+            <div id="passwordView" style="display: none;">
+                <div class="text-center mb-4" id="selectedAccountInfo">
+                    <i class="bi bi-person-circle display-4 text-secondary" id="selectedAvatar"></i>
+                    <h4 class="mt-2 text-white" id="selectedName"></h4>
+                    <span class="text-secondary" id="selectedEmail"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-white">
+                        <i class="bi bi-lock-fill"></i> Password
+                    </label>
+                    <input type="password" class="form-control-custom" id="passwordInput"
+                        placeholder="Enter your password">
+                </div>
+
+                <div class="mb-4 d-flex justify-content-between align-items-center">
+                    <div class="form-check d-flex justiyc-content-center align-items-center gap-1" style="padding-left: 0rem !important;">
+                        <input type="checkbox" class="checkbox-custom" id="rememberDevice">
+                        <label class="form-check-label text-secondary small" for="rememberDevice">
+                            Remember this device
+                        </label>
+                    </div>
+                    <a href="#" id="forgotPasswordLink" class="text-decoration-none small" style="color: #667eea;">
+                        Forgot password?
+                    </a>
+                </div>
+
+                <button class="btn btn-light btn-sm w-100 mb-2" id="signInBtn">
+                    Sign In <i class="bi bi-box-arrow-in-right"></i>
+                </button>
+                <button class="btn btn-outline-custom btn-sm w-100" id="backToAccountsBtn">
+                    <i class="bi bi-arrow-left"></i> Back to accounts
+                </button>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="alert alert-danger alert-sm mt-3"
+                style="display: none; font-size: 0.875rem; background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); color: #f87171;">
+                <i class="bi bi-exclamation-triangle-fill"></i> <span id="errorText"></span>
+            </div>
+        </div>
+    </div>
+    <script src="login_script.js"></script>
+</body>
+
+</html>

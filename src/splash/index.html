@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
+    <title>Loading - POS System</title>
+    <link rel="stylesheet" href="../shared/css/style.css">
+</head>
+<style>
+    body {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        height: 100vh;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .splash-card {
+        background: rgba(255, 255, 255, 0.05);
+        background-color: transparent;
+        backdrop-filter: blur(10px);
+        /* border: 1px solid rgba(255, 255, 255, 0.1); */
+        border: none;
+        transition: transform 0.3s ease;
+    }
+
+    .logo-icon {
+        font-size: 4rem;
+        animation: bounce 2s ease-in-out infinite;
+        display: inline-block;
+    }
+
+    .progress {
+        height: 6px;
+        border-radius: 3px;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .progress-bar {
+        background: linear-gradient(90deg, #0d6efd, #8b5cf6);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    @keyframes bounce {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .tip-text {
+        font-size: 0.75rem;
+        opacity: 0.6;
+    }
+</style>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+                <div class="card splash-card text-white text-center p-5">
+                    <div class="card-body">
+                        <!-- Logo -->
+                        <div class="mb-4">
+                            <img class="logo-icon" src="../shared/images/ebis_new_logo-removebg-preview.png" alt="EbisCloud Logo" width="120" height="100">
+                            <!-- <i class="bi bi-cart-fill logo-icon"></i> -->
+                            <h1 class="h3 mt-3 fw-bold">EbisCloud POS</h1>
+                            <p class="text-white-50 small">Point of Sale System</p>
+                        </div>
+    
+                        <!-- Progress Bar -->
+                        <div class="mt-4">
+                            <div class="progress">
+                                <div class="progress-bar" id="progressFill" style="width: 0%"></div>
+                            </div>
+                            <p class="mt-2 small text-white-50" id="loadingMessage">
+                                <i class="bi bi-arrow-repeat me-1"></i>Starting up...
+                            </p>
+                        </div>
+    
+                        <!-- Tips Section -->
+                        <div class="mt-4 pt-3 border-top border-white-10">
+                            <p class="tip-text mb-0">
+                                <i class="bi bi-lightbulb"></i> Tip: Keep your receipt printer ready
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../splash/splash_script.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "supermarket_pos",
+  "title": "Ebiscloud Point of Sale v1.0.0",
+  "version": "1.0.0",
+  "description": "Ebiscloud Point of Sale System for Supermarkets & Retail Shops",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Ebiscloud",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^42.4.0"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1"
+  }
+}
