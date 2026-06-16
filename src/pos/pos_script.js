@@ -2,6 +2,15 @@
 let cart = [];
 let currentSearchMode = 'name';
 let currentUser = null;
+let suggestionIndex = -1;
+
+function debounce(fn, delay) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
 
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
@@ -121,9 +130,105 @@ async function searchProducts() {
         addToCart(product);
         searchInput.value = '';
         searchInput.focus();
+        hideSuggestions();
     } else {
         showToast('Product not found', 'warning');
     }
+}
+
+// ========================
+// SUGGESTIONS / AUTOCOMPLETE
+// ========================
+async function showSuggestions(query) {
+    const dropdown = document.getElementById('suggestionsDropdown');
+    if (!dropdown) return;
+
+    const warehouseId = currentUser ? currentUser.warehouse_id : 1;
+    try {
+        const result = await window.electronAPI.searchProducts(query, warehouseId);
+        const products = result.products || [];
+        if (products.length === 0) {
+            hideSuggestions();
+            return;
+        }
+
+        const taxLabel = (p) => {
+            if (p.tax_method === 1) return '<span class="badge bg-info" style="font-size:0.65rem;">Inc</span>';
+            if (p.tax_method === 2) return '<span class="badge bg-secondary" style="font-size:0.65rem;">+Tax</span>';
+            return '';
+        };
+
+        dropdown.innerHTML = products.map((p, i) => `
+            <div class="suggestion-item" data-index="${i}" data-id="${p.id}" data-price="${p.price}" data-tax="${p.tax_method || 2}" data-name="${p.name}" data-code="${p.code || ''}">
+                <div>
+                    <span class="suggestion-name">${highlightMatch(p.name, query)}</span>
+                    <span class="suggestion-code">${p.code}</span>
+                </div>
+                <div style="text-align:right;">
+                    <span class="suggestion-price">${formatPrice(p.price)}</span>
+                    ${taxLabel(p)}
+                    <div class="suggestion-stock ${p.warehouse_qty > 5 ? 'text-success' : 'text-warning'}">Qty: ${p.warehouse_qty || 0}</div>
+                </div>
+            </div>
+        `).join('');
+
+        dropdown.style.display = 'block';
+        suggestionIndex = -1;
+
+        dropdown.querySelectorAll('.suggestion-item').forEach(item => {
+            item.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const idx = parseInt(item.dataset.index);
+                selectSuggestion(idx);
+            });
+        });
+    } catch (e) {
+        hideSuggestions();
+    }
+}
+
+function highlightMatch(text, query) {
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return text;
+    const before = text.substring(0, idx);
+    const match = text.substring(idx, idx + query.length);
+    const after = text.substring(idx + query.length);
+    return `${before}<mark style="background:#667eea;color:#fff;padding:0 2px;border-radius:2px;">${match}</mark>${after}`;
+}
+
+function updateSuggestionHighlight(items) {
+    items.forEach((item, i) => {
+        item.classList.toggle('active', i === suggestionIndex);
+    });
+    if (suggestionIndex >= 0 && items[suggestionIndex]) {
+        items[suggestionIndex].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+function selectSuggestion(index) {
+    const items = document.querySelectorAll('#suggestionsDropdown .suggestion-item');
+    if (index < 0 || index >= items.length) return;
+    const item = items[index];
+    const product = {
+        id: parseInt(item.dataset.id),
+        name: item.dataset.name,
+        code: item.dataset.code,
+        price: parseFloat(item.dataset.price),
+        tax_method: parseInt(item.dataset.tax)
+    };
+    addToCart(product);
+    searchInput.value = '';
+    searchInput.focus();
+    hideSuggestions();
+}
+
+function hideSuggestions() {
+    const dropdown = document.getElementById('suggestionsDropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+        dropdown.innerHTML = '';
+    }
+    suggestionIndex = -1;
 }
 
 function addToCart(product) {
@@ -1224,7 +1329,46 @@ function attachEventListeners() {
     themeToggleBtn.addEventListener('click', toggleTheme);
 
     searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') searchProducts();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (suggestionIndex >= 0) {
+                selectSuggestion(suggestionIndex);
+            } else {
+                searchProducts();
+            }
+        }
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+        const dropdown = document.getElementById('suggestionsDropdown');
+        if (!dropdown || dropdown.style.display === 'none') return;
+        const items = dropdown.querySelectorAll('.suggestion-item');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            suggestionIndex = Math.min(suggestionIndex + 1, items.length - 1);
+            updateSuggestionHighlight(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            suggestionIndex = Math.max(suggestionIndex - 1, -1);
+            updateSuggestionHighlight(items);
+        } else if (e.key === 'Escape') {
+            hideSuggestions();
+        }
+    });
+
+    const debouncedSuggest = debounce(showSuggestions, 150);
+    searchInput.addEventListener('input', () => {
+        suggestionIndex = -1;
+        const query = searchInput.value.trim();
+        if (!query || query.length < 2) {
+            hideSuggestions();
+            return;
+        }
+        debouncedSuggest(query);
+    });
+
+    searchInput.addEventListener('blur', () => {
+        setTimeout(() => hideSuggestions(), 150);
     });
 
     powerBtn.addEventListener('click', (e) => {

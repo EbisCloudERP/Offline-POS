@@ -167,7 +167,55 @@
 
     .search-input {
         flex: 1;
+        position: relative;
     }
+
+    .suggestions-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        max-height: 280px;
+        overflow-y: auto;
+        border-radius: 0 0 8px 8px;
+        display: none;
+    }
+
+    body.dark-theme .suggestions-dropdown {
+        background: #1e293b;
+        border: 1px solid rgba(255,255,255,0.15);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    }
+
+    body.light-theme .suggestions-dropdown {
+        background: white;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .suggestion-item {
+        padding: 0.6rem 1rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.active {
+        background: rgba(102,126,234,0.2);
+    }
+
+    .suggestion-item:last-child {
+        border-bottom: none;
+    }
+
+    .suggestion-name { font-weight: 500; }
+    .suggestion-code { font-size: 0.8rem; opacity: 0.6; }
+    .suggestion-price { font-weight: 600; }
+    .suggestion-stock { font-size: 0.75rem; }
 
     .form-control-custom {
         padding: 0.6rem 1rem;
@@ -741,7 +789,8 @@
                     <button class="mode-btn" data-mode="barcode">Barcode</button>
                 </div>
                 <div class="search-input">
-                    <input type="text" class="form-control-custom" id="searchInput" placeholder="Search by name...">
+                    <input type="text" class="form-control-custom" id="searchInput" placeholder="Search by name..." autocomplete="off">
+                    <div class="suggestions-dropdown" id="suggestionsDropdown"></div>
                 </div>
                 <button class="btn btn-light" id="searchBtn" style="padding: 0.6rem 1.2rem;">
                     <i class="bi bi-search"></i> Search
