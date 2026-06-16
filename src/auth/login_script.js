@@ -125,14 +125,7 @@ async function handleSignIn() {
                 localStorage.setItem("rememberedDevice", "true");
                 localStorage.setItem("lastUser", selectedAccount.email);
             }
-
-            // Check if product key exists
-            const keyResult = await window.electronAPI.hasValidProductKey();
-            if (keyResult.valid) {
-                await window.electronAPI.openPOSWindow();
-            } else {
-                await window.electronAPI.openProductKeyWindow();
-            }
+            await window.electronAPI.openPOSWindow();
         } else {
             showError(result.error || "Login failed. Please try again.");
             passwordInput.value = "";

@@ -146,7 +146,10 @@ function attachEventListeners() {
                 console.error('Failed to save onboarding data:', e);
             }
 
-            if (window.electronAPI && window.electronAPI.navigateToLogin) {
+            const nextScreen = await window.electronAPI.getNextScreen();
+            if (nextScreen.screen === 'product-key') {
+                await window.electronAPI.openProductKeyWindow();
+            } else {
                 await window.electronAPI.navigateToLogin();
             }
         });

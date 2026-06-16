@@ -26,11 +26,13 @@ const interval = setInterval(async () => {
         updateMessage("Starting application...", "bi-box-arrow-in-right");
         setTimeout(async () => {
             try {
-                const result = await window.electronAPI.isOnboardingDone();
-                if (result.done) {
-                    window.electronAPI.navigateToLogin();
-                } else {
+                const result = await window.electronAPI.getNextScreen();
+                if (result.screen === 'onboarding') {
                     window.electronAPI.navigateToOnboarding();
+                } else if (result.screen === 'product-key') {
+                    window.electronAPI.openProductKeyWindow();
+                } else {
+                    window.electronAPI.navigateToLogin();
                 }
             } catch (e) {
                 window.electronAPI.navigateToOnboarding();

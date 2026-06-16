@@ -291,6 +291,12 @@ function setupSyncListener() {
             updateSyncIndicator(true, false);
         });
     }
+    if (window.electronAPI.onForceLogout) {
+        window.electronAPI.onForceLogout((reason) => {
+            alert('Logged out: ' + reason);
+            window.close();
+        });
+    }
     // Initial status
     window.electronAPI.getSyncStatus().then(status => {
         updateSyncIndicator(status.online, status.syncing);

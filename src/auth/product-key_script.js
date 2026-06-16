@@ -56,12 +56,12 @@ activateBtn.addEventListener("click", async () => {
                     activateBtn.style.display = 'none';
                     cancelBtn.style.display = 'none';
                     setTimeout(() => {
-                        window.electronAPI.openPOSWindow();
+                        window.electronAPI.navigateToLogin();
                     }, 2000);
                     return;
                 }
             }
-            await window.electronAPI.openPOSWindow();
+            await window.electronAPI.navigateToLogin();
         } else {
             showError(result.error || "Invalid product key. Please check and try again.");
             activateBtn.disabled = false;

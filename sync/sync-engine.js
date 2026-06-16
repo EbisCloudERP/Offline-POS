@@ -5,12 +5,14 @@ class SyncEngine {
         this.db = db;
         this.apiBaseUrl = apiConfig.baseUrl || 'http://localhost/api';
         this.apiKey = apiConfig.apiKey || '';
+        this.productKeyUrl = apiConfig.productKeyUrl || 'https://ebis.ebisclouderp.com/api/product/';
         this.syncInterval = apiConfig.syncInterval || 60000;
         this.isOnline = false;
         this.isSyncing = false;
         this.intervalId = null;
         this.onStatusChange = null;
         this.onSyncComplete = null;
+        this.onForceLogout = null;
 
         this.#setupOnlineDetection();
     }
@@ -258,7 +260,16 @@ class SyncEngine {
             return { success: false, error: 'Internet connection required for activation' };
         }
         try {
-            const result = await this.#apiRequest('POST', '/auth/activate', { product_key: productKey, terminal_id: terminalId });
+            const payload = { product_key: productKey, terminal_id: terminalId };
+            const response = await fetch(this.productKeyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': this.apiKey },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            const result = await response.json();
             if (result.success) {
                 this.db.saveProductKey(productKey, terminalId);
                 if (result.company_name) {
@@ -271,10 +282,35 @@ class SyncEngine {
         }
     }
 
+    async verifyProductKey(terminalId) {
+        try {
+            const response = await fetch(this.productKeyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': this.apiKey },
+                body: JSON.stringify({ terminal_id: terminalId })
+            });
+            if (!response.ok) {
+                return { success: false };
+            }
+            return response.json();
+        } catch {
+            return { success: false };
+        }
+    }
+
     // ========================
     // FULL SYNC
     // ========================
     async fullSync() {
+        const terminalId = this.getTerminalId();
+        if (terminalId) {
+            const verify = await this.verifyProductKey(terminalId);
+            if (!verify.success && this.onForceLogout) {
+                this.onForceLogout('Product key is no longer valid');
+                return { pulled: false, pushed: false, errors: ['Product key invalid'] };
+            }
+        }
+
         const result = { pulled: false, pushed: false, errors: [] };
         try {
             await this.pullAll();
@@ -303,8 +339,16 @@ class SyncEngine {
                 this.fullSync();
             }
         });
-        this.intervalId = setInterval(() => {
+        this.intervalId = setInterval(async () => {
             if (this.isOnline && !this.isSyncing) {
+                const terminalId = this.getTerminalId();
+                if (terminalId) {
+                    const verify = await this.verifyProductKey(terminalId);
+                    if (!verify.success && this.onForceLogout) {
+                        this.onForceLogout('Product key is no longer valid');
+                        return;
+                    }
+                }
                 this.pushAll().then(() => this.pullAll());
             }
         }, this.syncInterval);

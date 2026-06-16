@@ -220,6 +220,18 @@ ipcMain.handle("is-onboarding-done", () => {
     return { done: db.isOnboardingDone() };
 });
 
+// Get next screen (splash routing)
+ipcMain.handle("get-next-screen", () => {
+    if (!db.isOnboardingDone()) {
+        return { screen: 'onboarding' };
+    }
+    const terminalId = getOrCreateTerminalId();
+    if (isDev || db.hasValidProductKey(terminalId)) {
+        return { screen: 'login' };
+    }
+    return { screen: 'product-key' };
+});
+
 // Onboarding
 ipcMain.handle("complete-onboarding", () => {
     db.setOnboardingDone();
@@ -472,6 +484,20 @@ app.whenReady().then(() => {
         if (posWindow && !posWindow.isDestroyed()) {
             posWindow.webContents.send('sync-completed', result);
         }
+    };
+
+    syncEngine.onForceLogout = (reason) => {
+        if (posWindow && !posWindow.isDestroyed()) {
+            posWindow.webContents.send('force-logout', reason);
+        }
+        currentUser = null;
+        if (posWindow && !posWindow.isDestroyed()) {
+            posWindow.close();
+        }
+        if (productKeyWindow && !productKeyWindow.isDestroyed()) {
+            productKeyWindow.close();
+        }
+        createAuthWindow();
     };
 
     syncEngine.start();

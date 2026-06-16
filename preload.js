@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     // Onboarding
     isOnboardingDone: () => ipcRenderer.invoke('is-onboarding-done'),
+    getNextScreen: () => ipcRenderer.invoke('get-next-screen'),
     completeOnboarding: () => ipcRenderer.invoke('complete-onboarding'),
     saveOnboardingPreferences: (prefs) => ipcRenderer.invoke('save-onboarding-preferences', prefs),
 
@@ -57,6 +58,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     },
     onSyncCompleted: (callback) => {
         ipcRenderer.on('sync-completed', (event, result) => callback(result));
+    },
+    onForceLogout: (callback) => {
+        ipcRenderer.on('force-logout', (event, reason) => callback(reason));
     },
 
     // Platform
