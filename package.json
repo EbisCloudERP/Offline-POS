@@ -5,11 +5,15 @@
   "description": "Ebiscloud Point of Sale System for Supermarkets & Retail Shops",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dev": "set DEV_MODE=1 && electron .",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "author": "Ebiscloud",
   "license": "MIT",
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
+    "better-sqlite3": "^12.11.1",
     "electron": "^42.4.0"
   },
   "dependencies": {

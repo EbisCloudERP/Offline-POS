@@ -94,6 +94,15 @@
         border-bottom-color: #f0f0f0;
     }
 
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .spin {
+        animation: spin 1s linear infinite;
+        display: inline-block;
+    }
+
     /* Layout */
     .pos-container {
         display: flex;
@@ -741,9 +750,20 @@
             <button class="new-sale-btn" id="newSaleBtn">
                 <i class="bi bi-plus-circle"></i> New Sale
             </button>
+            <span id="syncStatus" class="badge bg-secondary" style="padding: 0.5rem 0.75rem;">
+                <i class="bi bi-cloud-slash"></i> Offline
+            </span>
+            <button class="new-sale-btn" id="syncNowBtn" title="Sync Now">
+                <i class="bi bi-cloud-arrow-up"></i> Sync
+            </button>
             <button class="menu-btn" id="menuToggleBtn">
                 <i class="bi bi-three-dots-vertical"></i>
             </button>
+        </div>
+
+        <!-- Toast -->
+        <div class="pos-toast" id="posToast" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; padding: 0.75rem 1.25rem; border-radius: 8px; color: white; max-width: 350px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: opacity 0.3s;">
+            <span id="toastMessage"></span>
         </div>
 
         <!-- Main Content -->
@@ -859,6 +879,7 @@
             <i class="bi bi-person-circle user-avatar"></i>
             <h5 id="userName" class="mt-2">John Doe</h5>
             <small class="text-secondary" id="userEmail">john@ebiscloud.com</small>
+            <div class="mt-1"><span class="badge bg-primary" id="companyName"></span></div>
         </div>
         <div class="canvas-menu">
             <div class="canvas-menu-header">Management</div>
@@ -930,6 +951,133 @@
             </div>
         </div>
     </div>
+
+    <!-- Confirm Modal -->
+    <div class="confirm-overlay" id="confirmOverlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000;"></div>
+    <div class="confirm-modal" id="confirmModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; background: #1e293b; border-radius: 16px; padding: 2rem; min-width: 350px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);">
+        <div class="text-center mb-3">
+            <i class="bi bi-question-circle" style="font-size: 2.5rem; color: #f59e0b;"></i>
+        </div>
+        <p id="confirmMessage" class="text-white text-center mb-4"></p>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-light btn-sm w-50" id="confirmCancelBtn">Cancel</button>
+            <button class="btn btn-light btn-sm w-50" id="confirmOkBtn">Confirm</button>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div class="receipt-overlay" id="receiptOverlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center;"></div>
+    <div class="receipt-modal" id="receiptModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; background: white; border-radius: 8px; padding: 0; width: 380px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.4); color: #000; font-family: monospace;">
+        <div id="receiptContent" style="padding: 1.5rem;"></div>
+        <div class="d-flex gap-2 p-3 border-top" style="border-top: 1px dashed #ccc;">
+            <button class="btn btn-outline-dark btn-sm w-50" id="receiptCloseBtn">Close</button>
+            <button class="btn btn-dark btn-sm w-50" id="receiptPrintBtn"><i class="bi bi-printer"></i> Print</button>
+        </div>
+    </div>
+
+    <!-- Product Management Modal -->
+    <div class="data-overlay" id="productsOverlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000;"></div>
+    <div class="data-modal" id="productsModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; background: #1e293b; border-radius: 16px; width: 700px; max-height: 80vh; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <h5 style="margin: 0;"><i class="bi bi-box-seam"></i> Product Management</h5>
+            <button class="btn btn-sm btn-outline-light" id="productsCloseBtn"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div style="padding: 1rem 1.5rem; overflow-y: auto; max-height: calc(80vh - 120px);">
+            <div class="mb-3">
+                <input type="text" class="form-control" id="productsSearchInput" placeholder="Search products..." style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
+            </div>
+            <table class="table table-dark table-sm table-striped" style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Tax</th>
+                        <th>Stock</th>
+                    </tr>
+                </thead>
+                <tbody id="productsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Sales History Modal -->
+    <div class="data-overlay" id="salesOverlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000;"></div>
+    <div class="data-modal" id="salesModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; background: #1e293b; border-radius: 16px; width: 800px; max-height: 85vh; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <h5 style="margin: 0;"><i class="bi bi-clock-history"></i> Sales History</h5>
+            <button class="btn btn-sm btn-outline-light" id="salesCloseBtn"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div style="padding: 1rem 1.5rem; overflow-y: auto; max-height: calc(85vh - 60px);">
+            <table class="table table-dark table-sm table-striped" style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th>Ref</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Sync</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="salesTableBody">
+                    <tr><td colspan="7" class="text-center text-secondary">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Open Sales (Held) Modal -->
+    <div class="data-overlay" id="heldOverlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000;"></div>
+    <div class="data-modal" id="heldModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; background: #1e293b; border-radius: 16px; width: 750px; max-height: 85vh; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <h5 style="margin: 0;"><i class="bi bi-cart-check"></i> Open Sales (Held)</h5>
+            <button class="btn btn-sm btn-outline-light" id="heldCloseBtn"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div style="padding: 1rem 1.5rem; overflow-y: auto; max-height: calc(85vh - 60px);">
+            <table class="table table-dark table-sm table-striped" style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th>Ref</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Qty</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="heldTableBody">
+                    <tr><td colspan="6" class="text-center text-secondary">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Admin Password Prompt Modal -->
+    <div class="admin-overlay" id="adminOverlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000;"></div>
+    <div class="admin-modal" id="adminModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; background: #1e293b; border-radius: 16px; padding: 2rem; min-width: 350px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);">
+        <div class="text-center mb-3">
+            <i class="bi bi-shield-lock-fill" style="font-size: 2.5rem; color: #ef4444;"></i>
+        </div>
+        <p id="adminPromptMessage" class="text-white text-center mb-3">Admin authorization required</p>
+        <input type="password" class="form-control mb-3" id="adminPasswordInput" placeholder="Enter admin password" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
+        <p id="adminError" class="text-danger small mb-2" style="display: none;"></p>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-light btn-sm w-50" id="adminCancelBtn">Cancel</button>
+            <button class="btn btn-light btn-sm w-50" id="adminConfirmBtn">Authorize</button>
+        </div>
+    </div>
+
+    <!-- End of Day Modal -->
+    <div class="data-overlay" id="eodOverlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000;"></div>
+    <div class="data-modal" id="eodModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; background: #1e293b; border-radius: 16px; width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <h5 style="margin: 0;"><i class="bi bi-sunset"></i> End of Day</h5>
+            <button class="btn btn-sm btn-outline-light" id="eodCloseBtn"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div style="padding: 1.5rem;" id="eodContent">
+            <div class="text-center text-secondary py-3">Loading...</div>
         </div>
     </div>
 

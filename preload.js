@@ -1,28 +1,64 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// console.info('Preload Script Loaded')
-
 contextBridge.exposeInMainWorld("electronAPI", {
-    
-    // Onboarding Manenos
-     navigateToOnboarding: () => ipcRenderer.invoke("navigate-to-onboarding"),
-
-    // Auth stuff
-     navigateToLogin: () => ipcRenderer.invoke('navigate-to-login'),
-
-    // Product key stuff
-     openProductKeyWindow: () => ipcRenderer.invoke('open-product-key-window'),
-     activateAndOpenPOS: (productKey) => ipcRenderer.invoke('activate-and-open-pos', productKey),
-
-    // POS
-    openPOSWindow: () => ipcRenderer.invoke('open-pos-window'),
-    
-    // Login
-    loginUser: (credentials) => ipcRenderer.invoke('login-user', credentials),
-
-    // Utility
+    // Navigation
+    navigateToOnboarding: () => ipcRenderer.invoke("navigate-to-onboarding"),
+    navigateToLogin: () => ipcRenderer.invoke('navigate-to-login'),
     closeCurrentWindow: () => ipcRenderer.invoke('close-current-window'),
 
-    // Platform thingy (hapana shika!!)
+    // Onboarding
+    isOnboardingDone: () => ipcRenderer.invoke('is-onboarding-done'),
+    completeOnboarding: () => ipcRenderer.invoke('complete-onboarding'),
+    saveOnboardingPreferences: (prefs) => ipcRenderer.invoke('save-onboarding-preferences', prefs),
+
+    // Auth
+    getCachedUsers: () => ipcRenderer.invoke('get-cached-users'),
+    loginUser: (credentials) => ipcRenderer.invoke('login-user', credentials),
+    getCurrentUser: () => ipcRenderer.invoke('get-current-user'),
+    clearCurrentUser: () => ipcRenderer.invoke('clear-current-user'),
+    openProductKeyWindow: () => ipcRenderer.invoke('open-product-key-window'),
+    validateProductKey: (productKey) => ipcRenderer.invoke('validate-product-key', productKey),
+    hasValidProductKey: () => ipcRenderer.invoke('has-valid-product-key'),
+    activateAndOpenPOS: (productKey) => ipcRenderer.invoke('activate-and-open-pos', productKey),
+    openPOSWindow: () => ipcRenderer.invoke('open-pos-window'),
+
+    // Products
+    getProducts: (warehouseId) => ipcRenderer.invoke('get-products', warehouseId),
+    searchProducts: (query, warehouseId) => ipcRenderer.invoke('search-products', query, warehouseId),
+    getProductByCode: (code, warehouseId) => ipcRenderer.invoke('get-product-by-code', code, warehouseId),
+    getProductByBarcode: (barcode, warehouseId) => ipcRenderer.invoke('get-product-by-barcode', barcode, warehouseId),
+    getProductByName: (query, warehouseId) => ipcRenderer.invoke('get-product-by-name', query, warehouseId),
+
+    // Sales
+    createSale: (saleData) => ipcRenderer.invoke('create-sale', saleData),
+    getSalesHistory: (limit) => ipcRenderer.invoke('get-sales-history', limit),
+    voidSale: (saleId, adminPassword) => ipcRenderer.invoke('void-sale', saleId, adminPassword),
+    verifyAdminPassword: (password) => ipcRenderer.invoke('verify-admin-password', password),
+    getDaySummary: () => ipcRenderer.invoke('get-day-summary'),
+    getCompanyName: () => ipcRenderer.invoke('get-company-name'),
+
+    // Held Sales
+    holdSale: (saleData) => ipcRenderer.invoke('hold-sale', saleData),
+    getHeldSales: () => ipcRenderer.invoke('get-held-sales'),
+    getHeldSaleItems: (heldSaleId) => ipcRenderer.invoke('get-held-sale-items', heldSaleId),
+    deleteHeldSale: (heldSaleId) => ipcRenderer.invoke('delete-held-sale', heldSaleId),
+
+    // Tax
+    calculateTax: (price, taxMethod) => ipcRenderer.invoke('calculate-tax', price, taxMethod),
+
+    // Sync
+    syncNow: () => ipcRenderer.invoke('sync-now'),
+    getSyncStatus: () => ipcRenderer.invoke('get-sync-status'),
+    getTerminalInfo: () => ipcRenderer.invoke('get-terminal-info'),
+
+    // Sync events from main process
+    onSyncStatusChanged: (callback) => {
+        ipcRenderer.on('sync-status-changed', (event, status) => callback(status));
+    },
+    onSyncCompleted: (callback) => {
+        ipcRenderer.on('sync-completed', (event, result) => callback(result));
+    },
+
+    // Platform
     platform: process.platform,
 });
