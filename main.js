@@ -449,6 +449,12 @@ ipcMain.handle("sync-now", async () => {
     return result;
 });
 
+ipcMain.handle("mpesa-stkpush", async (event, data) => {
+    if (!syncEngine) return { success: false, error: 'Sync engine not initialized' };
+    const result = await syncEngine.requestMpesaStkPush(data);
+    return result;
+});
+
 ipcMain.handle("get-sync-status", () => {
     return {
         online: syncEngine ? syncEngine.isOnline : false,
@@ -470,7 +476,7 @@ app.whenReady().then(() => {
     getOrCreateTerminalId();
 
     syncEngine = new SyncEngine(db, {
-        baseUrl: process.env.API_BASE_URL || 'http://localhost/api',
+        baseUrl: process.env.API_BASE_URL || 'https://ebis-bo.ebisclouderp.com/api',
         apiKey: process.env.API_KEY || ''
     });
 

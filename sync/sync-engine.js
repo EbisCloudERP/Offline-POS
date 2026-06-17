@@ -3,7 +3,7 @@ const { net } = require('electron');
 class SyncEngine {
     constructor(db, apiConfig = {}) {
         this.db = db;
-        this.apiBaseUrl = apiConfig.baseUrl || 'http://localhost/api';
+        this.apiBaseUrl = apiConfig.baseUrl || 'https://ebis-bo.ebisclouderp.com/api';
         this.apiKey = apiConfig.apiKey || '';
         this.productKeyUrl = apiConfig.productKeyUrl || 'https://ebis-bo.ebisclouderp.com/api/product/';
         this.syncInterval = apiConfig.syncInterval || 60000;
@@ -46,23 +46,33 @@ class SyncEngine {
     }
 
     async #apiRequest(method, endpoint, body = null) {
-        const url = `${this.apiBaseUrl}${endpoint}`;
-        const options = {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': this.apiKey,
-                'X-Terminal-ID': this.getTerminalId() || ''
-            }
+        const productKey = this.db.getPreference('product_key_raw') || '';
+        let url = `${this.apiBaseUrl}${endpoint}`;
+        if (productKey) {
+            url += `/${productKey}`;
+        }
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': this.apiKey,
+            'X-Product-Key': productKey,
+            'X-Terminal-ID': this.getTerminalId() || ''
         };
+        const options = { method, headers };
         if (body) {
             options.body = JSON.stringify(body);
         }
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                let errorBody = '';
+                try { errorBody = await response.text(); } catch (_) {}
+                throw new Error(`API error ${response.status}: ${url} — ${errorBody}`);
+            }
+            return response.json();
+        } catch (err) {
+            if (err.message.startsWith('API error')) throw err;
+            throw new Error(`Fetch failed for ${url}: ${err.message}`);
         }
-        return response.json();
     }
 
     getTerminalId() {
@@ -92,8 +102,7 @@ class SyncEngine {
     }
 
     async pullProducts() {
-        const lastSync = this.db.getLastSyncTimestamp('products') || '2000-01-01 00:00:00';
-        const data = await this.#apiRequest('GET', `/sync/products?since=${encodeURIComponent(lastSync)}`);
+        const data = await this.#apiRequest('GET', '/sync/products');
         if (data.products && data.products.length > 0) {
             this.db.syncProducts(data.products);
         }
@@ -104,8 +113,7 @@ class SyncEngine {
     }
 
     async pullUsers() {
-        const lastSync = this.db.getLastSyncTimestamp('users') || '2000-01-01 00:00:00';
-        const data = await this.#apiRequest('GET', `/sync/users?since=${encodeURIComponent(lastSync)}`);
+        const data = await this.#apiRequest('GET', '/sync/users');
         if (data.users && data.users.length > 0) {
             this.db.syncUsers(data.users);
         }
@@ -235,6 +243,74 @@ class SyncEngine {
         return result;
     }
 
+    async requestMpesaStkPush(data) {
+        if (!this.isOnline) {
+            return { success: false, error: 'No internet connection' };
+        }
+
+        const consumerKey = this.db.getPreference('mpesa_consumer_key');
+        const consumerSecret = this.db.getPreference('mpesa_consumer_secret');
+        const passkey = this.db.getPreference('mpesa_passkey');
+        const shortcode = this.db.getPreference('mpesa_shortcode');
+
+        if (!consumerKey || !consumerSecret || !passkey || !shortcode) {
+            return { success: false, error: 'M-Pesa credentials not configured' };
+        }
+
+        const isSandbox = this.db.getPreference('mpesa_sandbox') !== '0';
+        const baseUrl = isSandbox
+            ? 'https://sandbox.safaricom.co.ke'
+            : 'https://api.safaricom.co.ke';
+
+        try {
+            const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+            const tokenRes = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, {
+                method: 'GET',
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            const tokenData = await tokenRes.json();
+            if (!tokenData.access_token) {
+                return { success: false, error: 'M-Pesa auth failed: ' + (tokenData.errorMessage || 'unknown') };
+            }
+
+            const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').substring(0, 14);
+            const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+
+            const stkRes = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${tokenData.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    BusinessShortCode: shortcode,
+                    Password: password,
+                    Timestamp: timestamp,
+                    TransactionType: 'CustomerPayBillOnline',
+                    Amount: Math.ceil(data.amount),
+                    PartyA: data.phone,
+                    PartyB: shortcode,
+                    PhoneNumber: data.phone,
+                    CallBackURL: this.db.getPreference('mpesa_callback_url') || `${this.apiBaseUrl}/mpesa/callback`,
+                    AccountReference: data.reference || 'POS',
+                    TransactionDesc: 'POS Sale'
+                })
+            });
+            const stkData = await stkRes.json();
+
+            if (stkData.ResponseCode === '0') {
+                return {
+                    success: true,
+                    checkout_request_id: stkData.CheckoutRequestID,
+                    message: stkData.CustomerMessage || 'M-Pesa request sent. Check your phone for PIN prompt.'
+                };
+            }
+            return { success: false, error: stkData.ResponseDescription || stkData.errorMessage || 'STK push failed' };
+        } catch (err) {
+            return { success: false, error: 'M-Pesa error: ' + err.message };
+        }
+    }
+
     // ========================
     // AUTH
     // ========================
@@ -259,14 +335,14 @@ class SyncEngine {
         if (!this.isOnline) {
             return { success: false, error: 'Internet connection required for activation' };
         }
+        const url = `${this.productKeyUrl}${encodeURIComponent(productKey)}`;
         try {
-            const url = `${this.productKeyUrl}${encodeURIComponent(productKey)}`;
             const response = await fetch(url, {
                 method: 'GET',
                 headers: { 'X-API-Key': this.apiKey }
             });
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                throw new Error(`API error ${response.status}: ${url}`);
             }
             const result = await response.json();
             if (result.success) {
@@ -275,10 +351,26 @@ class SyncEngine {
                 if (result.company_name) {
                     this.db.setPreference('company_name', result.company_name);
                 }
+                this.db.clearUsers();
+                try {
+                    await this.pullUsers();
+                } catch (e) {
+                    result.pullError = e.message;
+                }
+                this.db.clearProducts();
+                this.db.clearProductWarehouse();
+                try {
+                    await this.pullProducts();
+                } catch (e) {
+                    result.pullError = result.pullError
+                        ? result.pullError + ' | Products: ' + e.message
+                        : 'Products: ' + e.message;
+                }
             }
             return result;
         } catch (err) {
-            return { success: false, error: err.message };
+            if (err.message.startsWith('API error')) throw err;
+            return { success: false, error: `Fetch failed for ${url}: ${err.message}` };
         }
     }
 

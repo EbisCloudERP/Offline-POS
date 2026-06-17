@@ -49,7 +49,11 @@ activateBtn.addEventListener("click", async () => {
                 const successDiv = document.getElementById('successMessage');
                 const successText = document.getElementById('successText');
                 if (successDiv && successText) {
-                    successText.innerHTML = `<strong>Activated!</strong><br>${result.company_name}`;
+                    let msg = `<strong>Activated!</strong><br>${result.company_name}`;
+                    if (result.pullError) {
+                        msg += `<br><small class="text-warning">Users sync failed: ${result.pullError}</small>`;
+                    }
+                    successText.innerHTML = msg;
                     successDiv.style.display = 'block';
                     document.querySelector('.product-key-card .info-box').style.display = 'none';
                     productKeyInput.style.display = 'none';
@@ -57,9 +61,12 @@ activateBtn.addEventListener("click", async () => {
                     cancelBtn.style.display = 'none';
                     setTimeout(() => {
                         window.electronAPI.navigateToLogin();
-                    }, 2000);
+                    }, result.pullError ? 5000 : 2000);
                     return;
                 }
+            }
+            if (result.pullError) {
+                showError('Users sync failed: ' + result.pullError);
             }
             await window.electronAPI.navigateToLogin();
         } else {
@@ -98,3 +105,5 @@ function showError(message) {
         errorText.textContent = "";
     }, 5000);
 }
+
+

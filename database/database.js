@@ -429,6 +429,10 @@ class LocalDB {
         return this.db.prepare('SELECT id, name, email, role_id, warehouse_id, branch_id, biller_id, company_name FROM users WHERE is_active = 1 AND is_deleted = 0').all();
     }
 
+    clearUsers() {
+        this.db.exec("DELETE FROM users");
+    }
+
     getUserByEmail(email) {
         return this.db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1 AND is_deleted = 0').get(email) || null;
     }
@@ -529,6 +533,14 @@ class LocalDB {
             WHERE p.barcode_symbology = ? AND p.is_active = 1
             LIMIT 1
         `).get(warehouseId, barcode) || null;
+    }
+
+    clearProducts() {
+        this.db.exec("DELETE FROM products");
+    }
+
+    clearProductWarehouse() {
+        this.db.exec("DELETE FROM product_warehouse");
     }
 
     getProductByName(query, warehouseId) {
@@ -642,7 +654,7 @@ class LocalDB {
     validateAdminPassword(password) {
         const crypto = require('crypto');
         const hash = crypto.createHash('sha256').update(password).digest('hex');
-        const admin = this.db.prepare('SELECT * FROM users WHERE role_id = 1 AND is_active = 1 AND is_deleted = 0 AND password = ? LIMIT 1').get(hash);
+        const admin = this.db.prepare('SELECT * FROM users WHERE role_id = 2 AND is_active = 1 AND is_deleted = 0 AND password = ? LIMIT 1').get(hash);
         return !!admin;
     }
 
@@ -840,10 +852,9 @@ class LocalDB {
     // DEV SEED DATA
     // ========================
     seedDevData() {
-        const userCount = this.db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-        if (userCount > 0) return;
+        const branchCount = this.db.prepare('SELECT COUNT(*) as count FROM branches').get().count;
+        if (branchCount > 0) return;
 
-        const crypto = require('crypto');
         const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
         const tx = this.db.transaction(() => {
@@ -867,36 +878,6 @@ class LocalDB {
 
             this.db.prepare('INSERT OR IGNORE INTO billers (id, name, company_name, email, phone_number, address, city, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
                 .run(1, 'Default Biller', 'Ebiscloud POS', 'biller@pos.com', '0700000000', '123 Main St', 'Nairobi', 1, now, now);
-
-            const passwordHash = crypto.createHash('sha256').update('password123').digest('hex');
-            this.db.prepare(`INSERT OR IGNORE INTO users (id, name, email, password, phone, company_name, role_id, warehouse_id, branch_id, biller_id, is_active, is_deleted, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-                .run(1, 'Admin User', 'admin@pos.com', passwordHash, '0700000000', 'Ebiscloud', 1, 1, 1, 1, 1, 0, now, now);
-
-            this.db.prepare(`INSERT OR IGNORE INTO users (id, name, email, password, phone, company_name, role_id, warehouse_id, branch_id, biller_id, is_active, is_deleted, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-                .run(2, 'Cashier Jane', 'jane@pos.com', passwordHash, '0711111111', 'Ebiscloud', 2, 1, 1, 1, 1, 0, now, now);
-
-            const products = [
-                { id: 1, name: 'Jam 500g', code: 'JAM001', barcode: '8901234567890', price: 80, cost: 60, tax_method: 2, unit_id: 1, sale_unit_id: 1 },
-                { id: 2, name: 'Bread 400g', code: 'BRD001', barcode: '8901234567891', price: 60, cost: 45, tax_method: 2, unit_id: 1, sale_unit_id: 1 },
-                { id: 3, name: 'Milk 1L', code: 'MLK001', barcode: '8901234567892', price: 55, cost: 40, tax_method: 1, unit_id: 3, sale_unit_id: 3 },
-                { id: 4, name: 'Sugar 1kg', code: 'SGR001', barcode: '8901234567893', price: 45, cost: 35, tax_method: 2, unit_id: 2, sale_unit_id: 2 },
-                { id: 5, name: 'Rice 5kg', code: 'RIC001', barcode: '8901234567894', price: 350, cost: 280, tax_method: 2, unit_id: 2, sale_unit_id: 2 },
-                { id: 6, name: 'Coke 500ml', code: 'COK001', barcode: '8901234567895', price: 40, cost: 30, tax_method: 1, unit_id: 1, sale_unit_id: 1 },
-                { id: 7, name: 'Chips 150g', code: 'CHP001', barcode: '8901234567896', price: 30, cost: 22, tax_method: 2, unit_id: 1, sale_unit_id: 1 },
-                { id: 8, name: 'Butter 250g', code: 'BTR001', barcode: '8901234567897', price: 120, cost: 95, tax_method: 2, unit_id: 1, sale_unit_id: 1 },
-            ];
-
-            const pStmt = this.db.prepare(`INSERT OR IGNORE INTO products (id, name, code, type, barcode_symbology, category_id, unit_id, purchase_unit_id, sale_unit_id, cost, price, qty, tax_id, tax_method, is_active, created_at, updated_at) VALUES (?, ?, ?, 'standard', ?, 0, ?, ?, ?, ?, ?, 0, 1, ?, 1, ?, ?)`);
-            for (const p of products) {
-                pStmt.run(p.id, p.name, p.code, p.barcode, p.unit_id, p.unit_id, p.sale_unit_id, p.cost, p.price, p.tax_method, now, now);
-            }
-
-            const pwStmt = this.db.prepare('INSERT OR IGNORE INTO product_warehouse (id, product_id, warehouse_id, qty, price, created_at, updated_at) VALUES (?, ?, 1, 100, ?, ?, ?)');
-            for (const p of products) {
-                pwStmt.run(p.id * 10, p.id, p.price, now, now);
-            }
 
             this.setPreference('onboarding_done', '1');
         });

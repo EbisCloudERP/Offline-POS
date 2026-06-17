@@ -105,23 +105,9 @@ async function searchProducts() {
     let product = null;
 
     try {
-        switch (currentSearchMode) {
-            case 'name': {
-                const result = await window.electronAPI.getProductByName(query, warehouseId);
-                product = result.product;
-                break;
-            }
-            case 'code': {
-                const result = await window.electronAPI.getProductByCode(query, warehouseId);
-                product = result.product;
-                break;
-            }
-            case 'barcode': {
-                const result = await window.electronAPI.getProductByBarcode(query, warehouseId);
-                product = result.product;
-                break;
-            }
-        }
+        product = (await window.electronAPI.getProductByBarcode(query, warehouseId)).product
+            || (await window.electronAPI.getProductByCode(query, warehouseId)).product
+            || (await window.electronAPI.getProductByName(query, warehouseId)).product;
     } catch (e) {
         console.error('Search error:', e);
     }
@@ -531,6 +517,150 @@ async function processPayment(method) {
             }
         }
     );
+}
+
+let mpesaAmount = 0;
+
+function openMpesaModal() {
+    if (cart.length === 0) {
+        showToast('Cart is empty', 'warning');
+        return;
+    }
+    const subtotal = cart.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
+    const totalTax = cart.reduce((sum, item) => sum + (item.taxPerUnit * item.quantity), 0);
+    mpesaAmount = parseFloat((subtotal + totalTax).toFixed(2));
+
+    document.getElementById('mpesaAmountLabel').textContent = 'Amount: ' + formatPrice(mpesaAmount);
+    document.getElementById('mpesaPhoneInput').value = '';
+    document.getElementById('mpesaError').style.display = 'none';
+    document.getElementById('mpesaSuccess').style.display = 'none';
+    document.getElementById('mpesaOverlay').style.display = 'block';
+    document.getElementById('mpesaModal').style.display = 'block';
+    document.getElementById('mpesaPhoneInput').focus();
+}
+
+function closeMpesaModal() {
+    document.getElementById('mpesaOverlay').style.display = 'none';
+    document.getElementById('mpesaModal').style.display = 'none';
+}
+
+async function sendMpesaStkPush() {
+    const phoneInput = document.getElementById('mpesaPhoneInput');
+    const phone = phoneInput.value.trim();
+    const errorEl = document.getElementById('mpesaError');
+    const sendBtn = document.getElementById('mpesaSendBtn');
+
+    if (!phone || !/^254\d{9}$/.test(phone)) {
+        errorEl.textContent = 'Enter a valid M-Pesa number (2547XXXXXXXX)';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    errorEl.style.display = 'none';
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
+
+    try {
+        const result = await window.electronAPI.requestMpesaStkPush({
+            phone: phone,
+            amount: mpesaAmount,
+            reference: 'POS-' + Date.now().toString(36).toUpperCase()
+        });
+
+        if (result.success) {
+            document.getElementById('mpesaSuccess').style.display = 'block';
+            document.getElementById('mpesaSuccessText').textContent = result.message || 'M-Pesa request sent. Check phone for PIN prompt.';
+            sendBtn.style.display = 'none';
+            document.getElementById('mpesaCancelBtn').textContent = 'Close';
+
+            setTimeout(async () => {
+                closeMpesaModal();
+                sendBtn.style.display = '';
+                document.getElementById('mpesaCancelBtn').textContent = 'Cancel';
+                await completePayment('M-Pesa');
+            }, 1500);
+        } else {
+            errorEl.textContent = result.error || 'M-Pesa request failed';
+            errorEl.style.display = 'block';
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="bi bi-phone"></i> Send M-Pesa Request';
+        }
+    } catch (e) {
+        errorEl.textContent = 'Network error: ' + e.message;
+        errorEl.style.display = 'block';
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="bi bi-phone"></i> Send M-Pesa Request';
+    }
+}
+
+async function completePayment(method) {
+    const subtotal = cart.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
+    const totalTax = cart.reduce((sum, item) => sum + (item.taxPerUnit * item.quantity), 0);
+    const grandTotal = parseFloat((subtotal + totalTax).toFixed(2));
+
+    try {
+        const terminalInfo = await window.electronAPI.getTerminalInfo();
+        const saleId = generateUUID();
+        const referenceNo = 'POS-' + Date.now().toString(36).toUpperCase();
+        const paymentRef = 'PAY-' + Date.now().toString(36).toUpperCase();
+        const now = new Date();
+
+        const saleData = {
+            id: saleId,
+            reference_no: referenceNo,
+            user_id: currentUser ? currentUser.id : 1,
+            customer_id: 1,
+            warehouse_id: currentUser ? currentUser.warehouse_id : 1,
+            biller_id: currentUser ? (currentUser.biller_id || 0) : 0,
+            terminal_id: terminalInfo.terminal_id || '',
+            items: cart.map(item => ({
+                product_id: item.id,
+                qty: item.quantity,
+                net_unit_price: item.basePrice,
+                discount: 0,
+                tax_rate: item.tax_method === 1 ? TAX_RATE : (item.tax_method === 2 ? TAX_RATE : 0),
+                tax: parseFloat((item.taxPerUnit * item.quantity).toFixed(2)),
+                total: parseFloat((item.basePrice * item.quantity).toFixed(2))
+            })),
+            payments: [{
+                payment_reference: paymentRef,
+                amount: grandTotal,
+                used_points: 0,
+                change_amount: 0,
+                paying_method: method,
+                payment_note: ''
+            }],
+            paid_amount: grandTotal,
+            payment_status: 1
+        };
+
+        const result = await window.electronAPI.createSale(saleData);
+        if (result.success) {
+            const receiptData = {
+                referenceNo,
+                paymentRef,
+                method,
+                items: [...cart],
+                subtotal,
+                totalTax,
+                grandTotal,
+                date: now,
+                user: currentUser ? currentUser.name : 'User',
+                terminal: terminalInfo.terminal_id || ''
+            };
+            cart = [];
+            updateCartDisplay();
+            searchInput.disabled = false;
+            searchInput.value = '';
+            searchInput.focus();
+            showReceipt(receiptData);
+        } else {
+            showToast('Failed to save sale: ' + (result.error || 'Unknown error'), 'danger');
+        }
+    } catch (e) {
+        console.error('Payment error:', e);
+        showToast('Payment processing failed', 'danger');
+    }
 }
 
 // ========================
@@ -1388,6 +1518,7 @@ function attachEventListeners() {
     const cashBtn = document.getElementById('cashBtn');
     const cardBtn = document.getElementById('cardBtn');
     const checkBtn = document.getElementById('checkBtn');
+    const mpesaBtn = document.getElementById('mpesaBtn');
 
     if (cashBtn) {
         cashBtn.removeEventListener('click', cashBtn._clickHandler);
@@ -1404,6 +1535,20 @@ function attachEventListeners() {
         checkBtn._clickHandler = () => processPayment('Check');
         checkBtn.addEventListener('click', checkBtn._clickHandler);
     }
+    if (mpesaBtn) {
+        mpesaBtn.addEventListener('click', openMpesaModal);
+    }
+
+    // M-Pesa modal buttons
+    const mpesaSendBtn = document.getElementById('mpesaSendBtn');
+    const mpesaCancelBtn = document.getElementById('mpesaCancelBtn');
+    const mpesaOverlay = document.getElementById('mpesaOverlay');
+    if (mpesaSendBtn) mpesaSendBtn.addEventListener('click', sendMpesaStkPush);
+    if (mpesaCancelBtn) mpesaCancelBtn.addEventListener('click', closeMpesaModal);
+    if (mpesaOverlay) mpesaOverlay.addEventListener('click', closeMpesaModal);
+    document.getElementById('mpesaPhoneInput')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMpesaStkPush();
+    });
 
     // Sync button
     if (syncNowBtn) {

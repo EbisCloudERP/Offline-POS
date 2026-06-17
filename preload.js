@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     syncNow: () => ipcRenderer.invoke('sync-now'),
     getSyncStatus: () => ipcRenderer.invoke('get-sync-status'),
     getTerminalInfo: () => ipcRenderer.invoke('get-terminal-info'),
+    requestMpesaStkPush: (data) => ipcRenderer.invoke('mpesa-stkpush', data),
 
     // Sync events from main process
     onSyncStatusChanged: (callback) => {
