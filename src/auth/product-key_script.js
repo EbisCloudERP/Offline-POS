@@ -5,9 +5,9 @@ const cancelBtn = document.getElementById("cancelBtn");
 const errorMessageDiv = document.getElementById("errorMessage");
 const errorText = document.getElementById("errorText");
 
-// Format: XXXXX-XXXXX-XXXXX-XXXXX
+// Format: XXXX-XXXX-XXXX-XXXX
 function validateKeyFormat(key) {
-    const keyPattern = /^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/;
+    const keyPattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
     return keyPattern.test(key);
 }
 
@@ -17,7 +17,7 @@ productKeyInput.addEventListener("input", (e) => {
 
     let formatted = "";
     for (let i = 0; i < value.length; i++) {
-        if (i > 0 && i % 5 === 0 && i < 20) {
+        if (i > 0 && i % 4 === 0 && i < 16) {
             formatted += "-";
         }
         formatted += value[i];
@@ -32,7 +32,7 @@ activateBtn.addEventListener("click", async () => {
     const productKey = productKeyInput.value.trim();
 
     if (!validateKeyFormat(productKey)) {
-        showError("Invalid product key format. Please use XXXXX-XXXXX-XXXXX-XXXXX");
+        showError("Invalid product key format. Please use XXXX-XXXX-XXXX-XXXX");
         return;
     }
 

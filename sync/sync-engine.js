@@ -5,7 +5,7 @@ class SyncEngine {
         this.db = db;
         this.apiBaseUrl = apiConfig.baseUrl || 'http://localhost/api';
         this.apiKey = apiConfig.apiKey || '';
-        this.productKeyUrl = apiConfig.productKeyUrl || 'https://ebis.ebisclouderp.com/api/product/';
+        this.productKeyUrl = apiConfig.productKeyUrl || 'https://ebis-bo.ebisclouderp.com/api/product/';
         this.syncInterval = apiConfig.syncInterval || 60000;
         this.isOnline = false;
         this.isSyncing = false;
@@ -260,11 +260,10 @@ class SyncEngine {
             return { success: false, error: 'Internet connection required for activation' };
         }
         try {
-            const payload = { product_key: productKey, terminal_id: terminalId };
-            const response = await fetch(this.productKeyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-API-Key': this.apiKey },
-                body: JSON.stringify(payload)
+            const url = `${this.productKeyUrl}${encodeURIComponent(productKey)}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'X-API-Key': this.apiKey }
             });
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
@@ -272,6 +271,7 @@ class SyncEngine {
             const result = await response.json();
             if (result.success) {
                 this.db.saveProductKey(productKey, terminalId);
+                this.db.setPreference('product_key_raw', productKey);
                 if (result.company_name) {
                     this.db.setPreference('company_name', result.company_name);
                 }
@@ -282,12 +282,16 @@ class SyncEngine {
         }
     }
 
-    async verifyProductKey(terminalId) {
+    async verifyProductKey() {
+        const storedKey = this.db.getPreference('product_key_raw');
+        if (!storedKey) {
+            return { success: true };
+        }
         try {
-            const response = await fetch(this.productKeyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-API-Key': this.apiKey },
-                body: JSON.stringify({ terminal_id: terminalId })
+            const url = `${this.productKeyUrl}${encodeURIComponent(storedKey)}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'X-API-Key': this.apiKey }
             });
             if (!response.ok) {
                 return { success: false };
@@ -304,7 +308,7 @@ class SyncEngine {
     async fullSync() {
         const terminalId = this.getTerminalId();
         if (terminalId) {
-            const verify = await this.verifyProductKey(terminalId);
+            const verify = await this.verifyProductKey();
             if (!verify.success && this.onForceLogout) {
                 this.onForceLogout('Product key is no longer valid');
                 return { pulled: false, pushed: false, errors: ['Product key invalid'] };
@@ -343,7 +347,7 @@ class SyncEngine {
             if (this.isOnline && !this.isSyncing) {
                 const terminalId = this.getTerminalId();
                 if (terminalId) {
-                    const verify = await this.verifyProductKey(terminalId);
+                    const verify = await this.verifyProductKey();
                     if (!verify.success && this.onForceLogout) {
                         this.onForceLogout('Product key is no longer valid');
                         return;
