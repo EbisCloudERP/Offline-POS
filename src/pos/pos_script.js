@@ -362,7 +362,7 @@ function newSale() {
 }
 
 function formatPrice(price) {
-    return price.toFixed(2);
+    return Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ========================
